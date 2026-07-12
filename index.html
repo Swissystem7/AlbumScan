@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlbumScan — דיגיטציה אוטומטית של אלבומי תמונות</title>
+<meta name="description" content="AlbumScan — הפכו אלבומי תמונות ישנים לאוסף דיגיטלי. צלמו עמוד אלבום וה-AI חותך, משפר, מזהה פנים וממיין לפי עשורים. שמרו על הזיכרונות המשפחתיים לנצח.">
+<meta property="og:title" content="AlbumScan — דיגיטציה אוטומטית של אלבומי תמונות">
+<meta property="og:description" content="צלמו עמוד אלבום — קבלו אוסף דיגיטלי מסודר. חיתוך אוטומטי, שחזור AI, זיהוי פנים ומיון לפי שנים.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#f59e0b">
+<style>
+:root{
+  --bg:#100a04; --bg2:#1c1208; --bg3:#241810; --card:#1a1006;
+  --border:rgba(255,220,150,0.12); --text:#f5e6c8; --muted:#9a7a50;
+  --amber:#f59e0b; --orange:#ea580c; --cream:#fef3c7; --gold:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+
+/* CREDITS & PAYWALL */
+.credits-badge{display:flex;align-items:center;gap:6px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:20px;padding:6px 14px;font-size:0.8rem;font-weight:600;color:var(--amber);cursor:default}
+.credits-badge.low{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:#f87171}
+.promo-banner{background:linear-gradient(90deg,rgba(245,158,11,.08),rgba(234,88,12,.06));border-bottom:1px solid rgba(245,158,11,.15);padding:9px 28px;font-size:0.82rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.promo-banner strong{color:var(--amber)}
+
+/* PAYWALL MODAL */
+.paywall-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:300;align-items:center;justify-content:center}
+.paywall-overlay.show{display:flex}
+.paywall-box{background:var(--bg2);border:1px solid rgba(245,158,11,.25);border-radius:24px;padding:32px 28px;width:min(480px,94vw);max-height:90vh;overflow-y:auto}
+.paywall-title{font-size:1.3rem;font-weight:900;text-align:center;margin-bottom:6px}
+.paywall-sub{text-align:center;color:var(--muted);font-size:0.85rem;margin-bottom:24px}
+.plan-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+@media(max-width:500px){.plan-cards{grid-template-columns:1fr}}
+.plan-card{border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;cursor:pointer;transition:all.2s;position:relative}
+.plan-card:hover{border-color:var(--amber)}
+.plan-card.featured{border-color:var(--amber);background:rgba(245,158,11,.06)}
+.plan-badge-top{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--amber);color:#1a1008;font-size:0.62rem;font-weight:800;padding:2px 10px;border-radius:20px;white-space:nowrap}
+.plan-name{font-weight:800;font-size:0.9rem;margin-bottom:6px}
+.plan-price{font-size:1.5rem;font-weight:900;color:var(--amber);margin-bottom:6px}
+.plan-price span{font-size:0.72rem;color:var(--muted);font-weight:400}
+.plan-features{font-size:0.72rem;color:var(--muted);line-height:1.7;text-align:start}
+.plan-features li{list-style:none;padding:0}
+.plan-features li::before{content:'✓ ';color:var(--amber)}
+.paywall-close{display:block;text-align:center;margin-top:10px;color:var(--muted);font-size:0.78rem;cursor:pointer;text-decoration:underline}
+.logo{font-size:1.3rem;font-weight:800;color:var(--amber)}
+.logo span{color:#fff;font-weight:300}
+.btn{padding:9px 22px;border-radius:8px;border:none;cursor:pointer;font-size:0.88rem;font-weight:600;font-family:inherit;transition:all.2s}
+.btn-primary{background:var(--amber);color:#1a1008}
+.btn-primary:hover{background:var(--gold);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--amber);color:var(--amber)}
+.btn-sm{padding:7px 16px;font-size:0.8rem}
+
+/* HERO */
+.hero{max-width:1100px;margin:0 auto;padding:60px 24px 40px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+@media(max-width:720px){.hero{grid-template-columns:1fr;padding:36px 16px 24px}}
+.hero-text h1{font-size:2.4rem;font-weight:900;line-height:1.25;margin-bottom:14px}
+.hero-text h1 em{font-style:normal;color:var(--amber)}
+.hero-text p{color:var(--muted);line-height:1.7;margin-bottom:28px;font-size:0.97rem;max-width:440px}
+.before-after{background:var(--bg2);border-radius:20px;border:1px solid var(--border);overflow:hidden;padding:20px}
+.ba-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between}
+.ba-label span{color:var(--amber)}
+.ba-canvases{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
+.ba-arrow{text-align:center;font-size:1.4rem;color:var(--amber)}
+
+/* UPLOAD */
+.main{max-width:1100px;margin:0 auto;padding:0 24px 60px}
+.upload-area{border:2px dashed rgba(245,158,11,.22);border-radius:20px;padding:48px;text-align:center;cursor:pointer;transition:all.25s;background:rgba(245,158,11,.03);margin-bottom:32px}
+.upload-area:hover{border-color:var(--amber);background:rgba(245,158,11,.07);transform:scale(1.005)}
+.upload-area .big-icon{font-size:4rem;margin-bottom:14px;display:block}
+.upload-area p{color:var(--muted)}
+.upload-area strong{color:var(--amber)}
+input[type=file]{display:none}
+
+/* PIPELINE */
+.pipeline{display:none;margin-bottom:32px;background:var(--bg2);border-radius:16px;padding:28px;border:1px solid var(--border)}
+.pipeline.show{display:block}
+.steps{display:flex;gap:0;margin-bottom:24px;overflow-x:auto}
+.step{flex:1;min-width:90px;text-align:center;padding:12px 6px;position:relative;transition:all.3s}
+.step::after{content:'←';position:absolute;left:-10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.8rem}
+.step:first-child::after{display:none}
+.step-icon{font-size:1.5rem;margin-bottom:5px;transition:transform.3s}
+.step-label{font-size:0.7rem;color:var(--muted);line-height:1.3}
+.step.done .step-label{color:var(--amber)}
+.step.done .step-icon{filter:drop-shadow(0 0 6px rgba(245,158,11,.5))}
+.step.active .step-icon{animation:pulse 1s infinite}
+.step.active .step-label{color:var(--cream)}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+.progress-track{height:8px;border-radius:4px;background:rgba(245,158,11,.1);margin-bottom:16px}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--orange),var(--amber));width:0;transition:width .6s cubic-bezier(.4,0,.2,1)}
+#pStatus{color:var(--muted);font-size:0.85rem;text-align:center;min-height:22px;transition:opacity.3s}
+.scan-sub{font-size:0.75rem;color:rgba(155,120,70,.7);text-align:center;margin-top:4px;min-height:18px}
+
+/* DECADE TABS */
+.decade-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.decade-tab{padding:7px 18px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.82rem;font-family:inherit;transition:all.2s;position:relative}
+.decade-tab:hover{border-color:var(--amber);color:var(--text)}
+.decade-tab.active{background:rgba(245,158,11,.12);border-color:var(--amber);color:var(--amber);font-weight:600}
+.decade-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--amber);color:#1a1008;font-size:0.65rem;font-weight:800;margin-inline-start:6px}
+
+/* RESULTS */
+.results{display:none}
+.results.show{display:block}
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.badge-count{background:rgba(245,158,11,.15);color:var(--amber);border-radius:20px;padding:4px 14px;font-size:0.82rem;font-weight:600}
+.enhance-row{display:flex;gap:16px;align-items:center;margin-bottom:20px;background:var(--bg2);border-radius:12px;padding:14px 18px;border:1px solid var(--border);flex-wrap:wrap}
+.enhance-label{font-size:0.85rem;font-weight:600}
+label.toggle-wrap{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.8rem;color:var(--muted);transition:color.2s}
+label.toggle-wrap:hover{color:var(--text)}
+input[type=checkbox]{accent-color:var(--amber);width:14px;height:14px;cursor:pointer}
+
+/* PHOTOS GRID */
+.decade-section{margin-bottom:36px}
+.decade-header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.decade-title{font-size:1.1rem;font-weight:700;color:var(--amber)}
+.decade-line{flex:1;height:1px;background:var(--border)}
+.decade-info{font-size:0.75rem;color:var(--muted)}
+.photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
+.photo-card{border-radius:14px;overflow:hidden;background:var(--bg2);border:1px solid var(--border);cursor:pointer;transition:all.25s;position:relative}
+.photo-card:hover{border-color:var(--amber);box-shadow:0 8px 28px rgba(245,158,11,.15)}
+.photo-card:hover .photo-canvas-wrap{transform:scale(1.03) rotate(0deg)!important}
+.photo-canvas-wrap{width:100%;overflow:hidden;transition:transform.3s cubic-bezier(.25,.46,.45,.94);display:block}
+.photo-canvas{width:100%;display:block}
+.photo-info{padding:10px 12px}
+.photo-year{font-weight:700;color:var(--amber);font-size:0.82rem;margin-bottom:2px}
+.photo-caption{font-size:0.71rem;color:var(--muted);line-height:1.35}
+.photo-selected{position:absolute;top:7px;right:7px;width:22px;height:22px;border-radius:50%;background:var(--amber);color:#1a1008;font-size:0.7rem;font-weight:700;display:none;align-items:center;justify-content:center}
+.photo-card.selected .photo-selected{display:flex}
+.photo-card.selected{border-color:var(--amber)}
+
+/* FACE CIRCLES */
+.face-overlay{position:absolute;top:0;left:0;width:100%;pointer-events:none}
+.face-circle{position:absolute;border:2px solid rgba(245,158,11,.7);border-radius:50%;pointer-events:auto;cursor:default}
+.face-circle:hover .face-tooltip{display:block}
+.face-tooltip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:rgba(24,16,4,.95);border:1px solid var(--amber);border-radius:8px;padding:6px 10px;font-size:0.7rem;color:var(--cream);white-space:nowrap;z-index:50;pointer-events:none}
+.face-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--amber)}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tool-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.8rem;font-family:inherit;transition:all.2s}
+.tool-btn:hover{border-color:var(--amber);color:var(--amber)}
+.tool-btn.active{background:rgba(245,158,11,.1);color:var(--amber);border-color:var(--amber)}
+.actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+
+/* LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.lightbox.show{display:flex}
+.lightbox canvas{max-width:90vw;max-height:75vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.lightbox-close{position:absolute;top:20px;left:20px;font-size:1.3rem;cursor:pointer;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;transition:all.2s}
+.lightbox-close:hover{background:rgba(255,255,255,.2)}
+.lightbox-caption{background:rgba(24,16,4,.9);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:0.85rem;color:var(--cream);text-align:center;max-width:440px}
+.lightbox-year{color:var(--amber);font-weight:700;font-size:0.75rem;margin-bottom:3px}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeInUp .4s ease forwards}
+
+/* ── PHOTO HOVER OVERLAY ── */
+.photo-card .photo-hover-overlay{position:absolute;inset:0;background:rgba(16,8,0,.65);display:flex;align-items:center;justify-content:center;gap:16px;opacity:0;transition:opacity .22s;border-radius:14px 14px 0 0;pointer-events:none}
+.photo-card:hover .photo-hover-overlay{opacity:1;pointer-events:auto}
+.hover-icon{width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.45);display:flex;align-items:center;justify-content:center;font-size:1rem;cursor:pointer;transition:background .18s;color:var(--cream)}
+.hover-icon:hover{background:rgba(245,158,11,.35)}
+
+/* ── STEP PROGRESS BAR ── */
+.step-prog{height:3px;border-radius:2px;background:rgba(245,158,11,.12);margin-top:5px;overflow:hidden}
+.step-prog-fill{height:100%;width:0%;background:var(--amber);border-radius:2px;transition:width .5s ease}
+.step.done .step-prog-fill{width:100%;background:var(--amber)}
+.step.active .step-prog-fill{width:55%;background:var(--orange);animation:stepPulse 1s ease-in-out infinite}
+@keyframes stepPulse{0%,100%{width:45%}50%{width:65%}}
+
+/* ── CREDITS GLOW ── */
+.credits-badge.critical{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.6);color:#f87171;box-shadow:0 0 10px rgba(239,68,68,.3);animation:creditGlow 1.4s ease-in-out infinite}
+@keyframes creditGlow{0%,100%{box-shadow:0 0 10px rgba(239,68,68,.3)}50%{box-shadow:0 0 18px rgba(239,68,68,.55)}}
+
+/* ── SUCCESS BANNER ── */
+.success-banner{background:linear-gradient(90deg,rgba(34,197,94,.15),rgba(34,197,94,.07));border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;margin-bottom:20px;font-size:.88rem;font-weight:600;color:#86efac;animation:fadeInUp .4s ease}
+.success-banner .s-icon{font-size:1.3rem}
+
+/* ── EMPTY GALLERY PLACEHOLDER ── */
+.gallery-placeholder{text-align:center;padding:60px 20px;color:var(--muted)}
+.gallery-placeholder .gp-icon{font-size:3.5rem;margin-bottom:14px;display:block;opacity:.5}
+.gallery-placeholder .gp-skeletons{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:400px;margin:20px auto}
+.gp-sk{height:100px;border-radius:10px;background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmerAmber 1.5s infinite}
+@keyframes shimmerAmber{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── AUTH / MODALS ── */
+.auth-tabs{display:flex;gap:6px;margin-bottom:16px;background:var(--bg3);border-radius:10px;padding:4px}
+.auth-tab{flex:1;padding:9px;border:none;border-radius:8px;background:transparent;color:var(--muted);font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s}
+.auth-tab.active{background:rgba(245,158,11,.14);color:var(--amber)}
+.auth-note{display:none;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--amber);border-radius:10px;padding:10px 14px;font-size:.82rem;font-weight:600;margin-bottom:14px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.76rem;color:var(--muted);margin-bottom:5px;font-weight:600}
+.field input,.field textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:.86rem;font-family:inherit;direction:rtl;transition:border-color .2s}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--amber)}
+.field textarea{min-height:70px;resize:vertical}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,.18);border:2px solid var(--amber);color:var(--amber);font-weight:800;font-size:.95rem;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.user-menu{position:relative}
+.user-dropdown{display:none;position:absolute;top:calc(100% + 8px);left:0;background:var(--bg2);border:1px solid var(--border);border-radius:12px;min-width:175px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:200;overflow:hidden}
+.user-dropdown.open{display:block}
+.user-dropdown .ud-name{padding:11px 15px;font-size:.8rem;font-weight:700;border-bottom:1px solid var(--border);color:var(--text)}
+.user-dropdown button{display:block;width:100%;text-align:right;padding:10px 15px;background:transparent;border:none;color:var(--muted);font-family:inherit;font-size:.82rem;cursor:pointer}
+.user-dropdown button:hover{background:rgba(245,158,11,.08);color:var(--amber)}
+.modal-actions{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.modal-actions .btn{flex:1}
+
+/* ── ONBOARDING ── */
+.onboard-box{text-align:center}
+.onboard-icon{font-size:3rem;margin-bottom:12px}
+.onboard-title{font-size:1.15rem;font-weight:900;margin-bottom:10px}
+.onboard-text{font-size:.85rem;color:var(--muted);line-height:1.7;margin-bottom:22px}
+.onboard-dots{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
+.onboard-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,220,150,.15);transition:background .2s}
+.onboard-dot.active{background:var(--amber)}
+
+/* ── FEEDBACK ── */
+.feedback-fab{position:fixed;bottom:22px;left:22px;z-index:250;background:var(--amber);color:#1a1008;border:none;border-radius:24px;padding:11px 20px;font-family:inherit;font-size:.85rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(245,158,11,.35);transition:transform .2s}
+.feedback-fab:hover{transform:translateY(-2px)}
+.stars-row{display:flex;gap:6px;justify-content:center;margin:12px 0 16px;direction:ltr}
+.star-btn{background:transparent;border:none;font-size:1.7rem;cursor:pointer;transition:transform .15s;filter:grayscale(1);opacity:.45}
+.star-btn:hover{transform:scale(1.15)}
+.star-btn.on{filter:none;opacity:1}
+
+/* ── LEGAL / FOOTER ── */
+.legal-body{font-size:.82rem;color:var(--muted);line-height:1.8;max-height:55vh;overflow-y:auto;text-align:right}
+.legal-body p{margin-bottom:12px}
+.legal-body strong{color:var(--text)}
+.app-footer{display:flex;align-items:center;justify-content:center;gap:18px;padding:22px;border-top:1px solid var(--border);font-size:.75rem;color:var(--muted);background:var(--bg2)}
+.app-footer a{color:var(--muted);text-decoration:none;transition:color .2s}
+.app-footer a:hover{color:var(--amber)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:28px;right:50%;transform:translateX(50%);background:#2a1c0c;border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:14px 22px;font-size:.88rem;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:999;opacity:0;transition:opacity .3s,bottom .3s;pointer-events:none;color:var(--cream)}
+.toast.show{opacity:1;bottom:36px}
+
+/* ── PRINT STYLES ── */
+@media print{
+  nav,.promo-banner,.upload-area,.pipeline,.toolbar,.decade-tabs,.actions-row,.paywall-overlay,
+  .enhance-row,.badge-count,.lightbox,.face-overlay,.photo-hover-overlay,
+  .feedback-fab,.app-footer,.toast{display:none!important}
+  body{background:#fff;color:#000}
+  .results{display:block!important}
+  #photoGrid{column-count:2;column-gap:12px}
+  .decade-section{break-inside:avoid;margin-bottom:16px}
+  .photos-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;break-inside:avoid}
+  .photo-card{break-inside:avoid;border:1px solid #ccc;background:#fff;filter:grayscale(1) contrast(1.1)}
+  .photo-canvas{width:100%;height:auto}
+  .photo-info{color:#333}
+  .photo-year{color:#555}
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">Album<span>Scan</span> 📷</div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="credits-badge" id="creditsBadge">💎 3 סריקות חינמיות נותרו</div>
+    <button class="btn btn-ghost btn-sm" onclick="resetAll()">🔄 סריקה חדשה</button>
+    <button class="btn btn-primary btn-sm" onclick="simulateScan()">⚡ דמו מהיר</button>
+    <div id="authArea"></div>
+  </div>
+</nav>
+
+<!-- Promo Banner -->
+<div class="promo-banner">
+  ✨ <strong>שחזור AI מלא (צבע + פנים + רזולוציה)</strong> — זמין בתוכנית Pro בלבד &nbsp;
+  <span onclick="showPaywall()" style="color:var(--amber);cursor:pointer;text-decoration:underline;font-weight:600">שדרג עכשיו →</span>
+</div>
+
+<!-- Paywall Modal -->
+<div class="paywall-overlay" id="paywallOverlay">
+  <div class="paywall-box">
+    <div class="paywall-title">💎 שדרג את AlbumScan</div>
+    <div class="paywall-sub">השתמשת ב-3 הסריקות החינמיות שלך. בחר תוכנית להמשיך:</div>
+    <div class="plan-cards">
+      <div class="plan-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">₪0 <span>/לעד</span></div>
+        <ul class="plan-features">
+          <li>3 סריקות חד-פעמי</li>
+          <li>חיתוך אוטומטי</li>
+          <li>שיפור בסיסי</li>
+        </ul>
+      </div>
+      <div class="plan-card featured">
+        <div class="plan-badge-top">הכי פופולרי</div>
+        <div class="plan-name">Pack 10</div>
+        <div class="plan-price">₪29 <span>/חבילה</span></div>
+        <ul class="plan-features">
+          <li>10 סריקות</li>
+          <li>שחזור צבע AI</li>
+          <li>ללא תפוגה</li>
+        </ul>
+        <button class="btn btn-primary" style="width:100%;margin-top:12px;font-size:0.8rem" onclick="buyPack()">רכוש</button>
+      </div>
+      <div class="plan-card">
+        <div class="plan-name">משפחתי</div>
+        <div class="plan-price">₪59 <span>/חודש</span></div>
+        <ul class="plan-features">
+          <li>סריקות ללא הגבלה</li>
+          <li>שחזור פנים AI</li>
+          <li>אלבום ענן</li>
+          <li>שיתוף משפחה</li>
+        </ul>
+        <button class="btn btn-primary" style="width:100%;margin-top:12px;font-size:0.8rem" onclick="buyFamily()">הירשם</button>
+      </div>
+    </div>
+    <span class="paywall-close" onclick="closePaywall()">המשך עם Free (3 סריקות בלבד)</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero" id="heroSection">
+  <div class="hero-text">
+    <h1>הפוך זיכרונות ישנים<br>ל<em>אוסף דיגיטלי</em></h1>
+    <p>צלם עמוד אלבום — ה-AI חותך כל תמונה בנפרד, משפר איכות, מזהה פנים ומוסיף כיתובים חכמים. הכל מאורגן לפי עשורים.</p>
+    <button class="btn btn-primary" style="font-size:1rem;padding:13px 32px" onclick="document.getElementById('fileIn').click()">📷 בחר תמונת אלבום</button>
+    <p style="margin-top:12px;font-size:0.75rem;color:rgba(155,120,70,.6)">JPG, PNG, HEIC · ניתן להעלות כמה עמודים יחד</p>
+  </div>
+  <div class="before-after">
+    <div class="ba-label"><span>לפני</span><span style="color:var(--muted)">→</span><span>אחרי</span></div>
+    <div class="ba-canvases">
+      <canvas id="baOld" width="200" height="150" style="border-radius:8px;width:100%"></canvas>
+      <canvas id="baNew" width="200" height="150" style="border-radius:8px;width:100%"></canvas>
+    </div>
+    <p style="margin-top:10px;font-size:0.72rem;color:var(--muted);text-align:center">שיפור אוטומטי: צבעים, חדות, גרעין וסיבוב</p>
+  </div>
+</div>
+
+<div class="main">
+  <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileIn').click()"
+    ondragover="event.preventDefault();this.style.borderColor='var(--amber)'"
+    ondragleave="this.style.borderColor=''"
+    ondrop="event.preventDefault();simulateScan()">
+    <span class="big-icon">📸</span>
+    <p>גרור עמוד אלבום לכאן<br><strong>או לחץ לבחירת קובץ</strong></p>
+  </div>
+  <input type="file" id="fileIn" accept="image/*" onchange="simulateScan()">
+
+  <!-- Empty Gallery Placeholder -->
+  <div id="emptyGalleryPlaceholder" class="gallery-placeholder">
+    <span class="gp-icon">🖼️</span>
+    <div style="font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:6px">העלה אלבום לסריקה</div>
+    <div style="font-size:.8rem">האלבום הדיגיטלי שלך יופיע כאן</div>
+    <div class="gp-skeletons">
+      <div class="gp-sk"></div><div class="gp-sk"></div><div class="gp-sk"></div>
+      <div class="gp-sk"></div><div class="gp-sk"></div><div class="gp-sk"></div>
+    </div>
+  </div>
+
+  <!-- Pipeline -->
+  <div class="pipeline" id="pipeline">
+    <div class="steps">
+      <div class="step" id="st0"><div class="step-icon">🔍</div><div class="step-label">זיהוי<br>תמונות</div><div class="step-prog"><div class="step-prog-fill"></div></div></div>
+      <div class="step" id="st1"><div class="step-icon">✂️</div><div class="step-label">חיתוך<br>אוטומטי</div><div class="step-prog"><div class="step-prog-fill"></div></div></div>
+      <div class="step" id="st2"><div class="step-icon">✨</div><div class="step-label">שיפור<br>איכות</div><div class="step-prog"><div class="step-prog-fill"></div></div></div>
+      <div class="step" id="st3"><div class="step-icon">👤</div><div class="step-label">זיהוי<br>פנים</div><div class="step-prog"><div class="step-prog-fill"></div></div></div>
+      <div class="step" id="st4"><div class="step-icon">🗂️</div><div class="step-label">מיון לפי<br>שנים</div><div class="step-prog"><div class="step-prog-fill"></div></div></div>
+      <div class="step" id="st5"><div class="step-icon">✅</div><div class="step-label">מוכן!</div><div class="step-prog"><div class="step-prog-fill"></div></div></div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="pFill"></div></div>
+    <p id="pStatus">מתחיל ניתוח...</p>
+    <p class="scan-sub" id="pSub"></p>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div id="successBanner" class="success-banner" style="display:none">
+      <span class="s-icon">✨</span>
+      <span id="successMsg">6 תמונות שוחזרו בהצלחה!</span>
+    </div>
+    <div class="results-header">
+      <h2>📁 האלבום הדיגיטלי שלך</h2>
+      <span class="badge-count" id="photoCount">0 תמונות</span>
+    </div>
+
+    <div class="enhance-row">
+      <span class="enhance-label">🪄 שיפורים:</span>
+      <label class="toggle-wrap"><input type="checkbox" id="chkColor" checked onchange="rerenderAll()"> תיקון צבעים</label>
+      <label class="toggle-wrap"><input type="checkbox" id="chkNoise" checked onchange="rerenderAll()"> הסרת רעש</label>
+      <label class="toggle-wrap"><input type="checkbox" id="chkBW" onchange="rerenderAll()"> שחור-לבן וינטג'</label>
+      <label class="toggle-wrap"><input type="checkbox" id="chkFaces" checked onchange="toggleFaces()"> הצג זיהוי פנים</label>
+    </div>
+
+    <div class="toolbar">
+      <button class="tool-btn active" id="tbDecade" onclick="setView('decade',this)">🗓️ לפי עשור</button>
+      <button class="tool-btn" onclick="setView('all',this)">📐 כל התמונות</button>
+      <button class="tool-btn" onclick="setView('fav',this)">⭐ מועדפים</button>
+    </div>
+
+    <div class="decade-tabs" id="decadeTabs"></div>
+    <div id="photoGrid"></div>
+
+    <div class="actions-row">
+      <button class="btn btn-primary" onclick="downloadAll()">⬇️ הורד ZIP</button>
+      <button class="btn btn-ghost" onclick="shareGooglePhotos()">📸 שתף לגוגל פוטוס</button>
+      <button class="btn btn-ghost" onclick="printAlbum()">🖨️ הדפס אלבום</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="app-footer">
+  <span>© 2026 AlbumScan 📷</span>
+  <a href="#" onclick="openLegal('terms');return false">תנאי שימוש</a>
+  <a href="#" onclick="openLegal('privacy');return false">מדיניות פרטיות</a>
+</footer>
+
+<!-- AUTH MODAL -->
+<div class="paywall-overlay" id="authModal">
+  <div class="paywall-box" style="width:min(400px,94vw)">
+    <div class="paywall-title">👤 החשבון שלי</div>
+    <div class="paywall-sub">שמרו את האלבומים הדיגיטליים שלכם בענן</div>
+    <div class="auth-note" id="authNote"></div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="authTabLogin" onclick="setAuthTab('login')">התחברות</button>
+      <button class="auth-tab" id="authTabRegister" onclick="setAuthTab('register')">הרשמה</button>
+    </div>
+    <div class="field" id="authNameField" style="display:none"><label>שם מלא</label><input id="aName" placeholder="ישראל ישראלי"></div>
+    <div class="field"><label>כתובת מייל</label><input id="aEmail" type="email" placeholder="you@gmail.com"></div>
+    <div class="field"><label>סיסמה</label><input id="aPass" type="password" placeholder="••••••••"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAuth()">ביטול</button>
+      <button class="btn btn-primary" id="authSubmitBtn" onclick="submitAuth()">התחבר</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEGAL MODAL -->
+<div class="paywall-overlay" id="legalModal">
+  <div class="paywall-box" style="width:min(560px,94vw)">
+    <div class="paywall-title" id="legalTitle"></div>
+    <div class="legal-body" id="legalBody" style="margin-top:14px"></div>
+    <span class="paywall-close" onclick="document.getElementById('legalModal').classList.remove('show')">סגור</span>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div class="paywall-overlay" id="onboardBg" style="z-index:400">
+  <div class="paywall-box onboard-box" style="width:min(440px,94vw)">
+    <div class="onboard-icon" id="obIcon">📷</div>
+    <div class="onboard-title" id="obTitle"></div>
+    <div class="onboard-text" id="obText"></div>
+    <div class="onboard-dots" id="obDots"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="finishOnboard()">דלג</button>
+      <button class="btn btn-primary" id="obNextBtn" onclick="nextOnboard()">הבא</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK -->
+<button class="feedback-fab" onclick="openFeedback()">💬 משוב</button>
+<div class="paywall-overlay" id="feedbackModal">
+  <div class="paywall-box" style="width:min(400px,94vw)">
+    <div class="paywall-title">💬 מה דעתך על AlbumScan?</div>
+    <div class="paywall-sub">המשוב שלך עוזר לנו להשתפר</div>
+    <div class="stars-row" id="starsRow">
+      <button class="star-btn" onclick="setStars(1)">⭐</button>
+      <button class="star-btn" onclick="setStars(2)">⭐</button>
+      <button class="star-btn" onclick="setStars(3)">⭐</button>
+      <button class="star-btn" onclick="setStars(4)">⭐</button>
+      <button class="star-btn" onclick="setStars(5)">⭐</button>
+    </div>
+    <div class="field"><label>ספר לנו עוד (אופציונלי)</label><textarea id="fbText" placeholder="מה עבד טוב? מה אפשר לשפר?"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('feedbackModal').classList.remove('show')">ביטול</button>
+      <button class="btn btn-primary" onclick="sendFeedback()">📨 שלח משוב</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLB(event)">
+  <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('show')">✕</button>
+  <canvas id="lbCanvas"></canvas>
+  <div class="lightbox-caption">
+    <div class="lightbox-year" id="lbYear"></div>
+    <div id="lbCaption"></div>
+  </div>
+</div>
+
+<script>
+/* ── DATA ── */
+const DECADES = {
+  '70s': {label:'שנות ה-70', years:['1971','1973','1975','1977','1978','1979']},
+  '80s': {label:'שנות ה-80', years:['1981','1983','1984','1986','1987','1988','1989']},
+  '90s': {label:'שנות ה-90', years:['1991','1993','1994','1996','1997','1999']},
+  '2000s':{label:'שנות ה-2000', years:['2001','2003','2004','2006','2007','2009']},
+};
+
+const CAPTIONS = [
+  'נסיעה משפחתית לאילת, קיץ {year}','יום הולדת של אבא, חיפה {year}','חופשה בטבריה, קיץ {year}',
+  'ארוחת שבת בבית הסבתא, {year}','ימי ילדות בשכונה, {year}','טיול שנתי לירושלים, {year}',
+  'חגיגות ראש השנה, {year}','ים כינרת, קיץ {year}','יום הולדת 5, תל אביב {year}',
+  'חתונת הדוד יואב, {year}','פיקניק משפחתי בפארק, {year}','חנוכת הבית החדש, {year}',
+  'שמחת חנוכה, {year}','ראשון לציון, קיץ {year}','טיול לנגב, {year}',
+];
+
+const FACES = [
+  'סבתא רחל','סבא משה','אמא','אבא','דוד יואב','דודה מרים','אח גדול','אחות קטנה',
+  'בן דוד יוני','נכדה ליאת',
+];
+
+const PALETTES_VINTAGE = [
+  {sky:'#7a9cb5',ground:'#6B5B3E',mid:'#8B9A6A'},
+  {sky:'#b5956a',ground:'#6B5030',mid:'#9A8060'},
+  {sky:'#a0a860',ground:'#5A5030',mid:'#8A9050'},
+  {sky:'#b09070',ground:'#7A5040',mid:'#9A7858'},
+  {sky:'#809aa0',ground:'#504840',mid:'#6A7868'},
+  {sky:'#c0a878',ground:'#785840',mid:'#a09060'},
+];
+
+const PHOTO_TYPES = ['landscape','portrait','group','interior','outdoor'];
+
+let photos = [];
+let curDecade = 'all';
+let showFaces = true;
+let bwMode = false;
+let freeScansLeft = 3;
+
+function updateCreditsUI() {
+  const badge = document.getElementById('creditsBadge');
+  if (freeScansLeft > 1) {
+    badge.textContent = '💎 ' + freeScansLeft + ' סריקות חינמיות נותרו';
+    badge.className = 'credits-badge';
+  } else if (freeScansLeft === 1) {
+    badge.textContent = '💎 סריקה אחת נותרה';
+    badge.className = 'credits-badge critical';
+  } else {
+    badge.textContent = '🔒 אין סריקות — שדרג';
+    badge.className = 'credits-badge low';
+  }
+}
+
+function showPaywall() {
+  track('pricing_open');
+  document.getElementById('paywallOverlay').classList.add('show');
+}
+function closePaywall() {
+  document.getElementById('paywallOverlay').classList.remove('show');
+}
+function buyPack() {
+  track('upgrade_click', {plan:'pack10'});
+  closePaywall();
+  freeScansLeft = 10;
+  updateCreditsUI();
+  alert('✅ חבילת 10 סריקות נרכשה! (מצב דמו)');
+}
+function buyFamily() {
+  track('upgrade_click', {plan:'family'});
+  closePaywall();
+  freeScansLeft = 999;
+  updateCreditsUI();
+  alert('✅ מנוי משפחתי הופעל! (מצב דמו)');
+}
+
+/* ── BEFORE/AFTER DEMO ── */
+function drawBeforeAfter() {
+  const old = document.getElementById('baOld');
+  const neo = document.getElementById('baNew');
+  const oc = old.getContext('2d');
+  const nc = neo.getContext('2d');
+  const p = PALETTES_VINTAGE[2];
+
+  // OLD — faded, scratched
+  const g = oc.createLinearGradient(0,0,0,150);
+  g.addColorStop(0,'#9a8860'); g.addColorStop(1,'#6a5030');
+  oc.fillStyle = g; oc.fillRect(0,0,200,150);
+  // silhouettes
+  oc.fillStyle='rgba(40,28,14,.4)';
+  for(let i=0;i<3;i++){oc.beginPath();oc.ellipse(50+i*50,90,14+i*4,22+i*6,0,0,Math.PI*2);oc.fill();}
+  // grain
+  for(let i=0;i<600;i++){
+    const x=Math.random()*200,y=Math.random()*150;
+    oc.fillStyle=`rgba(${Math.random()>0.5?255:0},${Math.random()>0.5?220:0},100,${Math.random()*.18})`;
+    oc.fillRect(x,y,1,1);
+  }
+  // fade
+  oc.fillStyle='rgba(200,170,100,.25)'; oc.fillRect(0,0,200,150);
+  // scratch lines
+  oc.strokeStyle='rgba(255,240,200,.3)'; oc.lineWidth=1;
+  oc.beginPath(); oc.moveTo(30,0); oc.lineTo(20,150); oc.stroke();
+  oc.beginPath(); oc.moveTo(140,0); oc.lineTo(160,150); oc.stroke();
+  // border
+  oc.strokeStyle='rgba(255,240,180,.3)'; oc.lineWidth=4;
+  oc.strokeRect(2,2,196,146);
+
+  // NEW — enhanced
+  const ng = nc.createLinearGradient(0,0,0,150);
+  ng.addColorStop(0,'#4a7aaa'); ng.addColorStop(0.6,'#c8d4c0'); ng.addColorStop(1,'#8a6040');
+  nc.fillStyle=ng; nc.fillRect(0,0,200,150);
+  nc.fillStyle='rgba(30,20,10,.5)';
+  for(let i=0;i<3;i++){nc.beginPath();nc.ellipse(50+i*50,92,14+i*4,22+i*6,0,0,Math.PI*2);nc.fill();}
+  nc.fillStyle='rgba(80,56,32,.35)'; nc.fillRect(0,100,200,50);
+  nc.strokeStyle='rgba(255,255,255,.3)'; nc.lineWidth=3; nc.strokeRect(2,2,196,146);
+  // glow badge
+  nc.fillStyle='rgba(245,158,11,.9)'; nc.beginPath();nc.roundRect(6,6,60,18,4);nc.fill();
+  nc.fillStyle='#1a1008'; nc.font='bold 9px Segoe UI'; nc.textAlign='start';
+  nc.fillText('✨ שופר AI',10,17);
+}
+
+window.addEventListener('load', drawBeforeAfter);
+
+/* ── SCAN PIPELINE ── */
+const SCAN_STEPS = [
+  {msg:'מזהה 6 תמונות בעמוד...', sub:'מנתח מבנה הדף ומאתר גבולות תמונות'},
+  {msg:'חותך תמונה 1/6...', sub:'הפרדת תמונות בודדות, תיקון זווית'},
+  {msg:'חותך תמונה 4/6...', sub:'ניתוח צבעים ואיזון לבן'},
+  {msg:'משפר איכות...', sub:'הסרת גרעין, חידוד פרטים, תיקון חשיפה'},
+  {msg:'מזהה פנים...', sub:'זיהוי 12 פנים ב-6 תמונות'},
+  {msg:'ממיין לפי שנים...', sub:'ניתוח EXIF, גווני צבע וסגנון הדפסה'},
+  {msg:'✅ מוכן!', sub:'האלבום הדיגיטלי שלך מוכן'},
+];
+
+function simulateScan() {
+  if (!requireAuth(simulateScan)) return;
+  if (freeScansLeft <= 0) { showPaywall(); return; }
+  track('primary_action', {type:'album_scan', scansLeft: freeScansLeft});
+  freeScansLeft--;
+  updateCreditsUI();
+  document.getElementById('heroSection').style.display = 'none';
+  document.getElementById('uploadArea').style.display = 'none';
+  document.getElementById('emptyGalleryPlaceholder').style.display = 'none';
+  document.getElementById('pipeline').classList.add('show');
+
+  let si = 0;
+  const fill = document.getElementById('pFill');
+  const status = document.getElementById('pStatus');
+  const sub = document.getElementById('pSub');
+
+  const advance = () => {
+    if (si >= SCAN_STEPS.length) { showResults(); return; }
+    document.querySelectorAll('.step').forEach((s,i) => {
+      s.classList.remove('done','active');
+      if (i < si) s.classList.add('done');
+      else if (i === si) s.classList.add('active');
+    });
+    status.textContent = SCAN_STEPS[si].msg;
+    sub.textContent = SCAN_STEPS[si].sub;
+    fill.style.width = ((si+1)/SCAN_STEPS.length*100) + '%';
+    si++;
+    setTimeout(advance, si === SCAN_STEPS.length ? 400 : 650 + Math.random()*200);
+  };
+  advance();
+}
+
+/* ── GENERATE PHOTOS ── */
+function generatePhotos() {
+  photos = [];
+  const decadeKeys = Object.keys(DECADES);
+  decadeKeys.forEach(dk => {
+    const d = DECADES[dk];
+    const count = 3 + Math.floor(Math.random()*3);
+    for (let i=0; i<count; i++) {
+      const year = d.years[Math.floor(Math.random()*d.years.length)];
+      const captionTemplate = CAPTIONS[Math.floor(Math.random()*CAPTIONS.length)];
+      const faces = [];
+      const faceCount = 1 + Math.floor(Math.random()*3);
+      const shuffled = [...FACES].sort(()=>Math.random()-.5).slice(0,faceCount);
+      shuffled.forEach(name => {
+        const conf = 85 + Math.floor(Math.random()*13);
+        const size = 24 + Math.floor(Math.random()*18);
+        const x = 15 + Math.floor(Math.random()*65);
+        const y = 20 + Math.floor(Math.random()*40);
+        faces.push({name, conf, size, x, y});
+      });
+      photos.push({
+        id: photos.length,
+        decade: dk,
+        year,
+        caption: captionTemplate.replace('{year}', year),
+        palette: PALETTES_VINTAGE[Math.floor(Math.random()*PALETTES_VINTAGE.length)],
+        type: PHOTO_TYPES[Math.floor(Math.random()*PHOTO_TYPES.length)],
+        rotation: (Math.random()*6-3).toFixed(1),
+        fav: false,
+        faces,
+        w: 180, h: 130,
+      });
+    }
+  });
+  document.getElementById('photoCount').textContent = photos.length + ' תמונות';
+}
+
+/* ── DRAW PHOTO ── */
+function drawPhoto(canvas, p) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const bw = document.getElementById('chkBW')?.checked;
+
+  if (p.type === 'portrait') {
+    // Portrait — person, soft BG
+    const bg = ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0, p.palette.sky); bg.addColorStop(1, p.palette.ground);
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+    // person silhouette
+    ctx.fillStyle='rgba(30,18,8,.55)';
+    ctx.beginPath(); ctx.ellipse(W/2, H*0.3, 18, 18, 0, 0, Math.PI*2); ctx.fill(); // head
+    ctx.beginPath(); ctx.ellipse(W/2, H*0.65, 26, 42, 0, 0, Math.PI*2); ctx.fill(); // body
+
+  } else if (p.type === 'group') {
+    // Group — 3 people
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, p.palette.sky); bg.addColorStop(0.65, p.palette.mid); bg.addColorStop(1, p.palette.ground);
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+    const positions = [W*0.25, W*0.5, W*0.75];
+    positions.forEach((x,i) => {
+      const scale = 0.85 + i*0.08;
+      ctx.fillStyle=`rgba(28,16,6,${0.45+i*.05})`;
+      ctx.beginPath(); ctx.ellipse(x, H*0.3, 13*scale, 13*scale, 0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x, H*0.62, 18*scale, 32*scale, 0,0,Math.PI*2); ctx.fill();
+    });
+
+  } else if (p.type === 'interior') {
+    // Interior — warm tones
+    ctx.fillStyle='#7a5830'; ctx.fillRect(0,0,W,H);
+    // wall
+    const wg = ctx.createLinearGradient(0,0,0,H);
+    wg.addColorStop(0,'#c8a060'); wg.addColorStop(1,'#8a6030');
+    ctx.fillStyle=wg; ctx.fillRect(0,0,W,H*0.6);
+    // floor
+    ctx.fillStyle='#5a3820'; ctx.fillRect(0,H*0.6,W,H*0.4);
+    // furniture hint
+    ctx.fillStyle='rgba(40,24,8,.6)';
+    ctx.fillRect(W*0.1, H*0.45, W*0.35, H*0.25);
+    ctx.fillRect(W*0.55, H*0.42, W*0.3, H*0.28);
+
+  } else {
+    // Landscape / outdoor
+    const sky = ctx.createLinearGradient(0,0,0,H*0.55);
+    sky.addColorStop(0,'#4a6890'); sky.addColorStop(1, p.palette.sky);
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,H*0.55);
+    // ground
+    const grd = ctx.createLinearGradient(0,H*0.55,0,H);
+    grd.addColorStop(0, p.palette.mid); grd.addColorStop(1, p.palette.ground);
+    ctx.fillStyle=grd; ctx.fillRect(0,H*0.55,W,H*0.45);
+    // horizon details
+    ctx.fillStyle='rgba(80,100,60,.5)';
+    for(let i=0;i<4;i++){
+      const tx=W*(0.1+i*0.22), th=8+Math.random()*16;
+      ctx.fillRect(tx, H*0.38, 6, th);
+      ctx.beginPath(); ctx.ellipse(tx+3,H*0.38,10,12,0,0,Math.PI*2); ctx.fill();
+    }
+    // people
+    if(p.type==='outdoor') {
+      ctx.fillStyle='rgba(28,16,6,.5)';
+      ctx.beginPath(); ctx.ellipse(W*0.38, H*0.55, 10,10,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(W*0.38, H*0.74, 14,24,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(W*0.58, H*0.53, 9,9,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(W*0.58, H*0.72, 12,22,0,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Vintage aging — yellowish overlay
+  ctx.fillStyle='rgba(200,150,50,.09)'; ctx.fillRect(0,0,W,H);
+
+  // Grain
+  const imageData = ctx.getImageData(0,0,W,H);
+  const d = imageData.data;
+  for(let i=0;i<d.length;i+=4){
+    const noise = (Math.random()-.5)*22;
+    d[i]=Math.min(255,Math.max(0,d[i]+noise));
+    d[i+1]=Math.min(255,Math.max(0,d[i+1]+noise*.8));
+    d[i+2]=Math.min(255,Math.max(0,d[i+2]+noise*.5));
+  }
+  ctx.putImageData(imageData,0,0);
+
+  // B&W
+  if(bw){
+    const id2 = ctx.getImageData(0,0,W,H);
+    for(let j=0;j<id2.data.length;j+=4){
+      const g2=id2.data[j]*.299+id2.data[j+1]*.587+id2.data[j+2]*.114;
+      id2.data[j]=id2.data[j+1]=id2.data[j+2]=g2;
+    }
+    ctx.putImageData(id2,0,0);
+  }
+
+  // Photo border (white edge like a print)
+  ctx.strokeStyle='rgba(255,248,230,.35)'; ctx.lineWidth=4;
+  ctx.strokeRect(2,2,W-4,H-4);
+  ctx.strokeStyle='rgba(120,90,50,.2)'; ctx.lineWidth=1;
+  ctx.strokeRect(5,5,W-10,H-10);
+}
+
+/* ── SHOW RESULTS ── */
+function showResults() {
+  generatePhotos();
+  document.getElementById('results').classList.add('show');
+  const banner = document.getElementById('successBanner');
+  const msg = document.getElementById('successMsg');
+  msg.textContent = photos.length + ' תמונות שוחזרו בהצלחה!';
+  banner.style.display = 'flex';
+  setTimeout(() => { banner.style.display = 'none'; }, 5000);
+  buildDecadeTabs();
+  renderGrid('all');
+  document.getElementById('results').scrollIntoView({behavior:'smooth'});
+}
+
+function buildDecadeTabs() {
+  const tabs = document.getElementById('decadeTabs');
+  tabs.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'decade-tab active';
+  allBtn.id = 'dt-all';
+  allBtn.onclick = () => filterDecade('all', allBtn);
+  allBtn.innerHTML = 'הכל <span class="decade-badge">' + photos.length + '</span>';
+  tabs.appendChild(allBtn);
+  Object.keys(DECADES).forEach(dk => {
+    const count = photos.filter(p=>p.decade===dk).length;
+    if(!count) return;
+    const btn = document.createElement('button');
+    btn.className = 'decade-tab';
+    btn.id = 'dt-'+dk;
+    btn.onclick = () => filterDecade(dk, btn);
+    btn.innerHTML = DECADES[dk].label + ' <span class="decade-badge">'+count+'</span>';
+    tabs.appendChild(btn);
+  });
+}
+
+function filterDecade(dk, btn) {
+  curDecade = dk;
+  document.querySelectorAll('.decade-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid(dk);
+}
+
+function setView(v, btn) {
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const dk = v === 'fav' ? 'fav' : curDecade;
+  renderGrid(v === 'fav' ? 'fav' : curDecade);
+}
+
+function renderGrid(filter) {
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = '';
+  const bw = document.getElementById('chkBW')?.checked;
+  const showF = document.getElementById('chkFaces')?.checked;
+
+  if (filter === 'all' || filter === 'decade') {
+    Object.keys(DECADES).forEach(dk => {
+      const group = photos.filter(p=>p.decade===dk);
+      if(!group.length) return;
+      const section = document.createElement('div');
+      section.className = 'decade-section fade-in';
+      section.innerHTML = `<div class="decade-header">
+        <div class="decade-title">${DECADES[dk].label}</div>
+        <div class="decade-line"></div>
+        <div class="decade-info">${group.length} תמונות</div>
+      </div>`;
+      const g = document.createElement('div'); g.className = 'photos-grid';
+      group.forEach(p => g.appendChild(makeCard(p, showF)));
+      section.appendChild(g);
+      grid.appendChild(section);
+    });
+  } else {
+    const group = filter === 'fav' ? photos.filter(p=>p.fav) : photos.filter(p=>p.decade===filter);
+    const g = document.createElement('div'); g.className = 'photos-grid';
+    group.forEach(p => g.appendChild(makeCard(p, showF)));
+    grid.appendChild(g);
+  }
+}
+
+function makeCard(p, showF) {
+  const div = document.createElement('div');
+  div.className = 'photo-card fade-in';
+  div.style.transform = `rotate(${p.rotation}deg)`;
+  div.dataset.id = p.id;
+
+  const selectedMark = document.createElement('div');
+  selectedMark.className = 'photo-selected'; selectedMark.textContent = '✓';
+  div.appendChild(selectedMark);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'photo-canvas-wrap';
+  wrap.style.transform = `rotate(${p.rotation}deg)`;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'photo-canvas';
+  canvas.width = p.w; canvas.height = p.h;
+  drawPhoto(canvas, p);
+  wrap.appendChild(canvas);
+  div.appendChild(wrap);
+
+  // Face overlays
+  if (showF && p.faces.length) {
+    const overlay = document.createElement('div');
+    overlay.className = 'face-overlay';
+    overlay.style.height = '100%';
+    p.faces.forEach(f => {
+      const fc = document.createElement('div');
+      fc.className = 'face-circle';
+      fc.style.cssText = `width:${f.size}px;height:${f.size}px;top:${f.y}%;right:${f.x}%;transform:translate(50%,-50%)`;
+      const tt = document.createElement('div');
+      tt.className = 'face-tooltip';
+      tt.innerHTML = `👤 ${f.name}<br><span style="color:var(--amber)">${f.conf}% ביטחון</span>`;
+      fc.appendChild(tt);
+      overlay.appendChild(fc);
+    });
+    div.appendChild(overlay);
+  }
+
+  // Hover overlay icons
+  const hov = document.createElement('div');
+  hov.className = 'photo-hover-overlay';
+  hov.innerHTML = `
+    <div class="hover-icon" title="הגדל" onclick="event.stopPropagation();openLightbox(${p.id})">🔍</div>
+    <div class="hover-icon" title="הורד" onclick="event.stopPropagation();alert('⬇️ מוריד תמונה מ-${p.year}... (דמו)')">⬇️</div>
+    <div class="hover-icon" title="מועדף" onclick="event.stopPropagation();toggleFav(${p.id},this)">❤️</div>`;
+  div.appendChild(hov);
+
+  const info = document.createElement('div'); info.className = 'photo-info';
+  info.innerHTML = `<div class="photo-year">~${p.year}</div><div class="photo-caption">${p.caption}</div>`;
+  div.appendChild(info);
+
+  div.addEventListener('click', () => openLightbox(p.id));
+  return div;
+}
+
+function rerenderAll() {
+  renderGrid(curDecade === 'all' ? 'all' : curDecade);
+}
+
+function toggleFaces() {
+  renderGrid(curDecade === 'all' ? 'all' : curDecade);
+}
+
+/* ── LIGHTBOX ── */
+function openLightbox(id) {
+  const p = photos.find(ph=>ph.id===id);
+  if(!p) return;
+  const lb = document.getElementById('lightbox');
+  const canvas = document.getElementById('lbCanvas');
+  canvas.width = p.w*3; canvas.height = p.h*3;
+  drawPhoto(canvas, p);
+  document.getElementById('lbYear').textContent = `שנה משוערת ~${p.year} · ${DECADES[p.decade]?.label}`;
+  document.getElementById('lbCaption').textContent = p.caption;
+  lb.classList.add('show');
+}
+
+function closeLB(e) {
+  if(e.target === document.getElementById('lightbox')) document.getElementById('lightbox').classList.remove('show');
+}
+
+/* ── ACTIONS ── */
+function downloadAll(){ alert('📦 ZIP עם ' + photos.length + ' תמונות מוכן להורדה! (מצב דמו)'); }
+function shareGooglePhotos(){ alert('📸 קישור לאלבום גוגל פוטוס הועתק!\nalbumscan.app/google/abc123'); }
+function printBook(){ window.print(); }
+function printAlbum(){ window.print(); }
+
+function toggleFav(id, iconEl) {
+  const p = photos.find(ph=>ph.id===id);
+  if (!p) return;
+  p.fav = !p.fav;
+  iconEl.style.color = p.fav ? 'var(--amber)' : 'var(--cream)';
+  iconEl.style.background = p.fav ? 'rgba(245,158,11,.3)' : '';
+}
+
+function resetAll() {
+  photos = [];
+  document.getElementById('heroSection').style.display = '';
+  document.getElementById('uploadArea').style.display = '';
+  document.getElementById('emptyGalleryPlaceholder').style.display = '';
+  document.getElementById('pipeline').classList.remove('show');
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('pFill').style.width = '0';
+  document.getElementById('photoGrid').innerHTML = '';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ══ TOAST ══ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 4000);
+}
+
+/* ══ ANALYTICS STUB ══ */
+function track(event, props) {
+  try {
+    const k = 'album_analytics';
+    const a = JSON.parse(localStorage.getItem(k) || '[]');
+    a.push({event, props: props || {}, ts: Date.now()});
+    while (a.length > 200) a.shift();
+    localStorage.setItem(k, JSON.stringify(a));
+  } catch(e) {}
+}
+
+/* ══ AUTH ══ */
+let authMode = 'login', pendingAction = null;
+function getUser() { try { return JSON.parse(localStorage.getItem('album_user') || 'null'); } catch(e) { return null; } }
+function openAuth(mode, msg) {
+  const note = document.getElementById('authNote');
+  note.textContent = msg || '';
+  note.style.display = msg ? 'block' : 'none';
+  setAuthTab(mode || 'login');
+  document.getElementById('authModal').classList.add('show');
+}
+function closeAuth() { document.getElementById('authModal').classList.remove('show'); pendingAction = null; }
+function setAuthTab(mode) {
+  authMode = mode;
+  document.getElementById('authTabLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('authTabRegister').classList.toggle('active', mode === 'register');
+  document.getElementById('authNameField').style.display = mode === 'register' ? 'block' : 'none';
+  document.getElementById('authSubmitBtn').textContent = mode === 'register' ? 'צור חשבון' : 'התחבר';
+}
+function submitAuth() {
+  const email = document.getElementById('aEmail').value.trim();
+  const pass = document.getElementById('aPass').value;
+  const name = document.getElementById('aName').value.trim();
+  if (!email || !email.includes('@')) { showToast('⚠️ נא להזין כתובת מייל תקינה'); return; }
+  if (!pass || pass.length < 4) { showToast('⚠️ סיסמה קצרה מדי (לפחות 4 תווים)'); return; }
+  if (authMode === 'register' && !name) { showToast('⚠️ נא להזין שם מלא'); return; }
+  const user = {name: name || email.split('@')[0], email, joined: Date.now()};
+  localStorage.setItem('album_user', JSON.stringify(user));
+  track(authMode === 'register' ? 'signup' : 'login', {email});
+  document.getElementById('authModal').classList.remove('show');
+  renderAuthArea();
+  showToast(authMode === 'register' ? '🎉 החשבון נוצר! ברוך הבא ל-AlbumScan' : '✅ התחברת בהצלחה, ' + user.name);
+  if (pendingAction) { const fn = pendingAction; pendingAction = null; setTimeout(fn, 300); }
+}
+function logout() {
+  localStorage.removeItem('album_user');
+  track('logout');
+  renderAuthArea();
+  showToast('👋 התנתקת בהצלחה');
+}
+function toggleUserMenu() { document.getElementById('userDropdown').classList.toggle('open'); }
+function renderAuthArea() {
+  const area = document.getElementById('authArea');
+  const u = getUser();
+  if (u) {
+    area.innerHTML = `
+      <div class="user-menu">
+        <div class="user-avatar" onclick="toggleUserMenu()">${(u.name || '?').charAt(0).toUpperCase()}</div>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="ud-name">👤 ${u.name}</div>
+          <button onclick="toggleUserMenu();showToast('⚙️ החשבון שלי — בקרוב')">החשבון שלי</button>
+          <button onclick="logout()">התנתק</button>
+        </div>
+      </div>`;
+  } else {
+    area.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="openAuth('login')" style="border-color:rgba(245,158,11,.35);color:var(--amber)">התחבר</button>`;
+  }
+}
+function requireAuth(fn) {
+  if (getUser()) return true;
+  pendingAction = fn;
+  openAuth('register', '✨ צור חשבון חינם כדי להמשיך');
+  return false;
+}
+document.addEventListener('click', e => {
+  const dd = document.getElementById('userDropdown');
+  if (dd && dd.classList.contains('open') && !e.target.closest('.user-menu')) dd.classList.remove('open');
+});
+
+/* ══ ONBOARDING ══ */
+const ONBOARD_STEPS = [
+  {icon:'📷', title:'ברוכים הבאים ל-AlbumScan', text:'הזיכרונות המשפחתיים שלכם ראויים לחיי נצח. צלמו עמוד מאלבום ישן — וה-AI שלנו הופך אותו לאוסף דיגיטלי מסודר, תמונה-תמונה.'},
+  {icon:'✨', title:'איך זה עובד?', text:'העלו צילום של עמוד אלבום (או גררו אותו למסך). המערכת מזהה כל תמונה, חותכת אותה בנפרד, משפרת צבעים וחדות, מזהה פנים מוכרות וממיינת הכל לפי עשורים.'},
+  {icon:'💎', title:'תוכניות Pro ומשפחתי', text:'מעבר ל-3 הסריקות החינמיות: חבילת 10 סריקות עם שחזור צבע AI ב-₪29, או מנוי משפחתי ב-₪59/חודש עם סריקות ללא הגבלה, שחזור פנים, אלבום ענן ושיתוף משפחתי.'},
+];
+let obStep = 0;
+function renderOnboard() {
+  const s = ONBOARD_STEPS[obStep];
+  document.getElementById('obIcon').textContent = s.icon;
+  document.getElementById('obTitle').textContent = s.title;
+  document.getElementById('obText').textContent = s.text;
+  document.getElementById('obDots').innerHTML = ONBOARD_STEPS.map((_,i)=>`<span class="onboard-dot${i===obStep?' active':''}"></span>`).join('');
+  document.getElementById('obNextBtn').textContent = obStep === ONBOARD_STEPS.length - 1 ? 'בואו נתחיל 🚀' : 'הבא';
+}
+function nextOnboard() {
+  if (obStep < ONBOARD_STEPS.length - 1) { obStep++; renderOnboard(); }
+  else finishOnboard();
+}
+function finishOnboard() {
+  localStorage.setItem('album_onboarded', '1');
+  document.getElementById('onboardBg').classList.remove('show');
+}
+if (!localStorage.getItem('album_onboarded')) {
+  renderOnboard();
+  document.getElementById('onboardBg').classList.add('show');
+}
+
+/* ══ LEGAL ══ */
+const LEGAL = {
+  terms: {title:'📄 תנאי שימוש', body:`
+<p><strong>1. כללי.</strong> AlbumScan הוא שירות דיגיטציה אוטומטית של אלבומי תמונות באמצעות בינה מלאכותית. השימוש בשירות — העלאת צילומי עמודי אלבום, עיבודם והורדת התוצרים — כפוף לתנאים אלה ומהווה הסכמה מלאה להם.</p>
+<p><strong>2. בעלות על התמונות.</strong> התמונות שאתם מעלים והתוצרים הדיגיטליים שמופקים מהן נותרים בבעלותכם המלאה. אתם מעניקים ל-AlbumScan רישיון מוגבל לעבד את התמונות אך ורק לצורך מתן השירות. באחריותכם לוודא שיש לכם זכות להעלות את התמונות, לרבות תמונות שבהן מצולמים אחרים.</p>
+<p><strong>3. סריקות ותשלומים.</strong> תוכנית Free כוללת 3 סריקות חד-פעמיות. חבילות סריקות נרכשות אינן פוקעות; מנוי משפחתי מתחדש חודשית וניתן לביטול בכל עת, בתוקף מסוף תקופת החיוב. שדרוגי AI (שחזור צבע, פנים ורזולוציה) זמינים בתוכניות בתשלום בלבד.</p>
+<p><strong>4. איכות התוצרים.</strong> שיפור התמונות, זיהוי הפנים והערכת השנים מבוססים על מודלים אלגוריתמיים ועשויים לכלול אי-דיוקים — במיוחד בתמונות דהויות או פגומות מאוד. השירות ניתן כמות שהוא (As-Is), ומומלץ לשמור על עותקי המקור הפיזיים.</p>
+<p><strong>5. שימוש אסור.</strong> אין להעלות תוכן בלתי חוקי, פוגעני או מפר זכויות יוצרים של צדדים שלישיים. AlbumScan רשאית להשעות חשבונות המפרים תנאים אלה.</p>
+<p><strong>6. דין וסמכות שיפוט.</strong> על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים במחוז תל אביב.</p>`},
+  privacy: {title:'🔒 מדיניות פרטיות', body:`
+<p><strong>1. איסוף מידע.</strong> בעת ההרשמה נאספים שם וכתובת מייל. בעת שימוש בשירות נאספות התמונות שהעליתם, התוצרים המעובדים ונתוני שימוש בסיסיים לצורך תפעול ושיפור המוצר.</p>
+<p><strong>2. תמונות משפחתיות וזיהוי פנים.</strong> אנו מבינים שתמונות משפחה הן מידע רגיש במיוחד. זיהוי הפנים משמש אך ורק לתיוג בתוך האלבום הפרטי שלכם, ואינו משמש לזיהוי אנשים מחוץ לחשבונכם או לאימון מודלים חיצוניים. תוצאות הזיהוי נגישות לכם בלבד.</p>
+<p><strong>3. שיתוף עם צדדים שלישיים.</strong> איננו מוכרים או משתפים תמונות ומידע אישי עם גורמים מסחריים. שיתוף אלבום עם בני משפחה נעשה רק ביוזמתכם ובאמצעות קישור שאתם מפיצים.</p>
+<p><strong>4. אחסון מקומי (Cookies).</strong> האפליקציה שומרת בדפדפן (localStorage) פרטי התחברות, יתרת סריקות, העדפות ונתוני שימוש אנונימיים. ניתן למחוק נתונים אלה בכל עת דרך הגדרות הדפדפן.</p>
+<p><strong>5. אבטחה ומחיקה.</strong> תמונות מאוחסנות באופן מוצפן. תוכלו למחוק תמונות בודדות או את כל החשבון בכל עת — מחיקת חשבון גוררת מחיקה מלאה של כל התמונות והנתונים בתוך 30 יום.</p>
+<p><strong>6. זכויותיך.</strong> בהתאם לחוק הגנת הפרטיות, התשמ"א-1981, באפשרותכם לעיין במידע השמור עליכם, לתקנו או לבקש את מחיקתו. לפניות: privacy@albumscan.app.</p>`},
+};
+function openLegal(kind) {
+  const l = LEGAL[kind];
+  document.getElementById('legalTitle').textContent = l.title;
+  document.getElementById('legalBody').innerHTML = l.body;
+  document.getElementById('legalModal').classList.add('show');
+}
+
+/* ══ FEEDBACK ══ */
+let fbStars = 0;
+function openFeedback() { document.getElementById('feedbackModal').classList.add('show'); }
+function setStars(n) {
+  fbStars = n;
+  document.querySelectorAll('#starsRow .star-btn').forEach((b,i)=>b.classList.toggle('on', i < n));
+}
+function sendFeedback() {
+  if (!fbStars) { showToast('⚠️ נא לבחור דירוג כוכבים'); return; }
+  const text = document.getElementById('fbText').value.trim();
+  try {
+    const arr = JSON.parse(localStorage.getItem('album_feedback') || '[]');
+    arr.push({stars: fbStars, text, ts: Date.now(), user: (getUser()||{}).email || 'anonymous'});
+    localStorage.setItem('album_feedback', JSON.stringify(arr));
+  } catch(e) {}
+  track('feedback', {stars: fbStars});
+  fbStars = 0;
+  document.getElementById('fbText').value = '';
+  document.querySelectorAll('#starsRow .star-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('feedbackModal').classList.remove('show');
+  showToast('🧡 תודה על המשוב!');
+}
+
+renderAuthArea();
+</script>
+</body>
+</html>
