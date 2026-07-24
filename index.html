@@ -17,6 +17,9 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.demo-trust{position:sticky;top:0;z-index:500;background:#7c2d12;color:#fff7ed;padding:10px 18px;text-align:center;font-size:.82rem;border-bottom:2px solid #fb923c}
+.source-label{display:inline-block;border:1px solid currentColor;border-radius:999px;padding:2px 8px;margin:2px 4px;font:700 .72rem/1.4 monospace}
+.trust-panel{max-width:1100px;margin:16px auto;padding:14px 18px;border:1px solid rgba(251,146,60,.55);border-radius:12px;background:rgba(124,45,18,.22);font-size:.82rem;line-height:1.6}
 
 nav{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
 
@@ -252,6 +255,13 @@ input[type=checkbox]{accent-color:var(--amber);width:14px;height:14px;cursor:poi
 </style>
 </head>
 <body>
+<div class="demo-trust" role="status"><strong>DEMO</strong> — No AI analysis or service is connected. All results are deterministic fictional fixtures.</div>
+<div class="trust-panel" dir="ltr">
+  <span class="source-label">LOCAL_INPUT</span> Your selected image remains local and is never analyzed.
+  <span class="source-label">DEMO_OUTPUT</span> Names, dates, confidence, captions, and enhancements are fictional seeded examples unrelated to your image.
+  <span class="source-label">VERIFIED_SERVICE</span> Unavailable. Billing, accounts, cloud, sharing, ZIP, email, and OAuth are not connected.
+  <strong>Image bytes never leave this browser; this page makes no network requests and does not store image bytes.</strong>
+</div>
 <nav>
   <div class="logo">Album<span>Scan</span> 📷</div>
   <div style="display:flex;gap:10px;align-items:center">
@@ -484,6 +494,7 @@ input[type=checkbox]{accent-color:var(--amber);width:14px;height:14px;cursor:poi
   </div>
 </div>
 
+<script src="demo-fixtures.js"></script>
 <script>
 /* ── DATA ── */
 const DECADES = {
@@ -547,16 +558,12 @@ function closePaywall() {
 function buyPack() {
   track('upgrade_click', {plan:'pack10'});
   closePaywall();
-  freeScansLeft = 10;
-  updateCreditsUI();
-  alert('✅ חבילת 10 סריקות נרכשה! (מצב דמו)');
+  alert('DEMO — billing is not connected. No purchase was made.');
 }
 function buyFamily() {
   track('upgrade_click', {plan:'family'});
   closePaywall();
-  freeScansLeft = 999;
-  updateCreditsUI();
-  alert('✅ מנוי משפחתי הופעל! (מצב דמו)');
+  alert('DEMO — subscriptions are not connected. No account was changed.');
 }
 
 /* ── BEFORE/AFTER DEMO ── */
@@ -575,9 +582,10 @@ function drawBeforeAfter() {
   oc.fillStyle='rgba(40,28,14,.4)';
   for(let i=0;i<3;i++){oc.beginPath();oc.ellipse(50+i*50,90,14+i*4,22+i*6,0,0,Math.PI*2);oc.fill();}
   // grain
+  const previewRandom = AlbumScanDemo.seededRandom('albumscan-preview-v1');
   for(let i=0;i<600;i++){
-    const x=Math.random()*200,y=Math.random()*150;
-    oc.fillStyle=`rgba(${Math.random()>0.5?255:0},${Math.random()>0.5?220:0},100,${Math.random()*.18})`;
+    const x=previewRandom()*200,y=previewRandom()*150;
+    oc.fillStyle=`rgba(${previewRandom()>0.5?255:0},${previewRandom()>0.5?220:0},100,${previewRandom()*.18})`;
     oc.fillRect(x,y,1,1);
   }
   // fade
@@ -618,11 +626,7 @@ const SCAN_STEPS = [
 ];
 
 function simulateScan() {
-  if (!requireAuth(simulateScan)) return;
-  if (freeScansLeft <= 0) { showPaywall(); return; }
   track('primary_action', {type:'album_scan', scansLeft: freeScansLeft});
-  freeScansLeft--;
-  updateCreditsUI();
   document.getElementById('heroSection').style.display = 'none';
   document.getElementById('uploadArea').style.display = 'none';
   document.getElementById('emptyGalleryPlaceholder').style.display = 'none';
@@ -644,45 +648,20 @@ function simulateScan() {
     sub.textContent = SCAN_STEPS[si].sub;
     fill.style.width = ((si+1)/SCAN_STEPS.length*100) + '%';
     si++;
-    setTimeout(advance, si === SCAN_STEPS.length ? 400 : 650 + Math.random()*200);
+    setTimeout(advance, si === SCAN_STEPS.length ? 400 : 700);
   };
   advance();
 }
 
 /* ── GENERATE PHOTOS ── */
 function generatePhotos() {
-  photos = [];
-  const decadeKeys = Object.keys(DECADES);
-  decadeKeys.forEach(dk => {
-    const d = DECADES[dk];
-    const count = 3 + Math.floor(Math.random()*3);
-    for (let i=0; i<count; i++) {
-      const year = d.years[Math.floor(Math.random()*d.years.length)];
-      const captionTemplate = CAPTIONS[Math.floor(Math.random()*CAPTIONS.length)];
-      const faces = [];
-      const faceCount = 1 + Math.floor(Math.random()*3);
-      const shuffled = [...FACES].sort(()=>Math.random()-.5).slice(0,faceCount);
-      shuffled.forEach(name => {
-        const conf = 85 + Math.floor(Math.random()*13);
-        const size = 24 + Math.floor(Math.random()*18);
-        const x = 15 + Math.floor(Math.random()*65);
-        const y = 20 + Math.floor(Math.random()*40);
-        faces.push({name, conf, size, x, y});
-      });
-      photos.push({
-        id: photos.length,
-        decade: dk,
-        year,
-        caption: captionTemplate.replace('{year}', year),
-        palette: PALETTES_VINTAGE[Math.floor(Math.random()*PALETTES_VINTAGE.length)],
-        type: PHOTO_TYPES[Math.floor(Math.random()*PHOTO_TYPES.length)],
-        rotation: (Math.random()*6-3).toFixed(1),
-        fav: false,
-        faces,
-        w: 180, h: 130,
-      });
-    }
-  });
+  photos = AlbumScanDemo.generateDemoPhotos('albumscan-demo-v1', {
+    decades: DECADES, faces: FACES, captions: CAPTIONS,
+    paletteCount: PALETTES_VINTAGE.length, types: PHOTO_TYPES
+  }).map(p => ({
+    ...p, palette: PALETTES_VINTAGE[p.paletteIndex], fav: false, w: 180, h: 130,
+    faces: p.faces.map(f => ({...f, conf: f.confidence}))
+  }));
   document.getElementById('photoCount').textContent = photos.length + ' תמונות';
 }
 
@@ -691,6 +670,7 @@ function drawPhoto(canvas, p) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const bw = document.getElementById('chkBW')?.checked;
+  const drawRandom = AlbumScanDemo.seededRandom('draw-' + p.id);
 
   if (p.type === 'portrait') {
     // Portrait — person, soft BG
@@ -741,7 +721,7 @@ function drawPhoto(canvas, p) {
     // horizon details
     ctx.fillStyle='rgba(80,100,60,.5)';
     for(let i=0;i<4;i++){
-      const tx=W*(0.1+i*0.22), th=8+Math.random()*16;
+      const tx=W*(0.1+i*0.22), th=8+drawRandom()*16;
       ctx.fillRect(tx, H*0.38, 6, th);
       ctx.beginPath(); ctx.ellipse(tx+3,H*0.38,10,12,0,0,Math.PI*2); ctx.fill();
     }
@@ -762,7 +742,7 @@ function drawPhoto(canvas, p) {
   const imageData = ctx.getImageData(0,0,W,H);
   const d = imageData.data;
   for(let i=0;i<d.length;i+=4){
-    const noise = (Math.random()-.5)*22;
+    const noise = (drawRandom()-.5)*22;
     d[i]=Math.min(255,Math.max(0,d[i]+noise));
     d[i+1]=Math.min(255,Math.max(0,d[i+1]+noise*.8));
     d[i+2]=Math.min(255,Math.max(0,d[i+2]+noise*.5));
@@ -946,8 +926,8 @@ function closeLB(e) {
 }
 
 /* ── ACTIONS ── */
-function downloadAll(){ alert('📦 ZIP עם ' + photos.length + ' תמונות מוכן להורדה! (מצב דמו)'); }
-function shareGooglePhotos(){ alert('📸 קישור לאלבום גוגל פוטוס הועתק!\nalbumscan.app/google/abc123'); }
+function downloadAll(){ alert('DEMO — ZIP generation and download are not connected.'); }
+function shareGooglePhotos(){ alert('DEMO — Google Photos and OAuth are not connected.'); }
 function printBook(){ window.print(); }
 function printAlbum(){ window.print(); }
 
@@ -1010,6 +990,8 @@ function setAuthTab(mode) {
   document.getElementById('authSubmitBtn').textContent = mode === 'register' ? 'צור חשבון' : 'התחבר';
 }
 function submitAuth() {
+  showToast('DEMO — accounts and email login are not connected.');
+  return;
   const email = document.getElementById('aEmail').value.trim();
   const pass = document.getElementById('aPass').value;
   const name = document.getElementById('aName').value.trim();
@@ -1089,20 +1071,12 @@ if (!localStorage.getItem('album_onboarded')) {
 
 /* ══ LEGAL ══ */
 const LEGAL = {
-  terms: {title:'📄 תנאי שימוש', body:`
-<p><strong>1. כללי.</strong> AlbumScan הוא שירות דיגיטציה אוטומטית של אלבומי תמונות באמצעות בינה מלאכותית. השימוש בשירות — העלאת צילומי עמודי אלבום, עיבודם והורדת התוצרים — כפוף לתנאים אלה ומהווה הסכמה מלאה להם.</p>
-<p><strong>2. בעלות על התמונות.</strong> התמונות שאתם מעלים והתוצרים הדיגיטליים שמופקים מהן נותרים בבעלותכם המלאה. אתם מעניקים ל-AlbumScan רישיון מוגבל לעבד את התמונות אך ורק לצורך מתן השירות. באחריותכם לוודא שיש לכם זכות להעלות את התמונות, לרבות תמונות שבהן מצולמים אחרים.</p>
-<p><strong>3. סריקות ותשלומים.</strong> תוכנית Free כוללת 3 סריקות חד-פעמיות. חבילות סריקות נרכשות אינן פוקעות; מנוי משפחתי מתחדש חודשית וניתן לביטול בכל עת, בתוקף מסוף תקופת החיוב. שדרוגי AI (שחזור צבע, פנים ורזולוציה) זמינים בתוכניות בתשלום בלבד.</p>
-<p><strong>4. איכות התוצרים.</strong> שיפור התמונות, זיהוי הפנים והערכת השנים מבוססים על מודלים אלגוריתמיים ועשויים לכלול אי-דיוקים — במיוחד בתמונות דהויות או פגומות מאוד. השירות ניתן כמות שהוא (As-Is), ומומלץ לשמור על עותקי המקור הפיזיים.</p>
-<p><strong>5. שימוש אסור.</strong> אין להעלות תוכן בלתי חוקי, פוגעני או מפר זכויות יוצרים של צדדים שלישיים. AlbumScan רשאית להשעות חשבונות המפרים תנאים אלה.</p>
-<p><strong>6. דין וסמכות שיפוט.</strong> על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים במחוז תל אביב.</p>`},
-  privacy: {title:'🔒 מדיניות פרטיות', body:`
-<p><strong>1. איסוף מידע.</strong> בעת ההרשמה נאספים שם וכתובת מייל. בעת שימוש בשירות נאספות התמונות שהעליתם, התוצרים המעובדים ונתוני שימוש בסיסיים לצורך תפעול ושיפור המוצר.</p>
-<p><strong>2. תמונות משפחתיות וזיהוי פנים.</strong> אנו מבינים שתמונות משפחה הן מידע רגיש במיוחד. זיהוי הפנים משמש אך ורק לתיוג בתוך האלבום הפרטי שלכם, ואינו משמש לזיהוי אנשים מחוץ לחשבונכם או לאימון מודלים חיצוניים. תוצאות הזיהוי נגישות לכם בלבד.</p>
-<p><strong>3. שיתוף עם צדדים שלישיים.</strong> איננו מוכרים או משתפים תמונות ומידע אישי עם גורמים מסחריים. שיתוף אלבום עם בני משפחה נעשה רק ביוזמתכם ובאמצעות קישור שאתם מפיצים.</p>
-<p><strong>4. אחסון מקומי (Cookies).</strong> האפליקציה שומרת בדפדפן (localStorage) פרטי התחברות, יתרת סריקות, העדפות ונתוני שימוש אנונימיים. ניתן למחוק נתונים אלה בכל עת דרך הגדרות הדפדפן.</p>
-<p><strong>5. אבטחה ומחיקה.</strong> תמונות מאוחסנות באופן מוצפן. תוכלו למחוק תמונות בודדות או את כל החשבון בכל עת — מחיקת חשבון גוררת מחיקה מלאה של כל התמונות והנתונים בתוך 30 יום.</p>
-<p><strong>6. זכויותיך.</strong> בהתאם לחוק הגנת הפרטיות, התשמ"א-1981, באפשרותכם לעיין במידע השמור עליכם, לתקנו או לבקש את מחיקתו. לפניות: privacy@albumscan.app.</p>`},
+  terms: {title:'DEMO limitations', body:`
+<p><strong>This is a local interface demonstration, not a service.</strong></p>
+<p>No image analysis, restoration, face recognition, account, payment, cloud album, sharing, email, OAuth, ZIP generation, or upload is implemented. Displayed gallery metadata is deterministic fictional DEMO_OUTPUT and is unrelated to LOCAL_INPUT.</p>`},
+  privacy: {title:'Local demo privacy', body:`
+<p><strong>Image bytes never leave this browser.</strong> The selected file is not read, uploaded, analyzed, retained, encrypted, or placed in browser storage.</p>
+<p>The page makes no network requests. UI preferences and demo interaction events may be stored in localStorage on this device and can be removed through browser settings. No claim of cloud deletion, retention, encryption, or regulatory compliance is made.</p>`},
 };
 function openLegal(kind) {
   const l = LEGAL[kind];
